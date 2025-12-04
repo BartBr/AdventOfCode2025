@@ -5,12 +5,12 @@ namespace AdventOfCode2025.Puzzles.Bart;
 
 [SuppressMessage("ReSharper", "EnforceIfStatementBraces")]
 [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
-public class Day04 : HappyPuzzleBase<long>
+public class Day04 : HappyPuzzleBase<int>
 {
 
-	public override long SolvePart1(Input input)
+	public override int SolvePart1(Input input)
 	{
-		long sum = 0;
+		var sum = 0;
 		var rows = input.Lines[0].Length;
 		var columns = input.Lines.Length;
 
@@ -54,9 +54,9 @@ public class Day04 : HappyPuzzleBase<long>
 		return sum;
 	}
 
-	public override long SolvePart2(Input input)
+	public override int SolvePart2(Input input)
 	{
-		long sum = 0;
+		var sum = 0;
 		var rows = input.Lines[0].Length;
 		var columns = input.Lines.Length;
 
