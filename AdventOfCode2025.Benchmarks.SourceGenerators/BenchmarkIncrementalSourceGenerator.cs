@@ -37,7 +37,7 @@ public class BenchmarkIncrementalSourceGenerator : IIncrementalGenerator
 
 					var puzzlePartReturnTypes = x.AllInterfaces.Single(happyPuzzleInterfacePredicate).TypeArguments;
 					var firstPartReturnType = puzzlePartReturnTypes[0].ToDisplayString();
-					var secondPartReturnType = puzzlePartReturnTypes[0].ToDisplayString();
+					var secondPartReturnType = puzzlePartReturnTypes[1].ToDisplayString();
 
 					return new BenchmarkPuzzleInfo(groupKey, username, fullyQualifiedPuzzleTypeName, firstPartReturnType, secondPartReturnType);
 				})
