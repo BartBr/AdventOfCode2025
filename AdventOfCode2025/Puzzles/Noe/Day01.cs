@@ -12,7 +12,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var count = 0;
 			foreach (var line in input.Lines)
 			{
-				var stepCount = int.Parse(line.AsSpan(1)) % DIAL_SIZE;
+				var stepCount = ParseInt(line.AsSpan(1)) % DIAL_SIZE;
 				switch (line[0])
 				{
 					case 'L':
@@ -46,7 +46,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var count = 0;
 			foreach (var line in input.Lines)
 			{
-				var stepCount = int.Parse(line.AsSpan(1));
+				var stepCount = ParseInt(line.AsSpan(1));
 				switch (line[0])
 				{
 					case 'L':
@@ -56,7 +56,9 @@ namespace AdventOfCode2025.Puzzles.Noe
 						{
 							current += DIAL_SIZE;
 							if (previous != 0)
+							{
 								count++;
+							}
 						}
 						break;
 					case 'R':
@@ -65,7 +67,9 @@ namespace AdventOfCode2025.Puzzles.Noe
 						{
 							current -= DIAL_SIZE;
 							if (current != 0)
+							{
 								count++;
+							}
 						}
 						break;
 				}
@@ -76,10 +80,20 @@ namespace AdventOfCode2025.Puzzles.Noe
 				{
 					count++;
 				}
-
 			}
 
 			return count;
+		}
+
+		private static int ParseInt(ReadOnlySpan<char> input)
+		{
+			var number = 0;
+			for (var i = 0; i < input.Length; i++)
+			{
+				var lastDigit = input[i] - '0';
+				number = number * 10 + lastDigit;
+			}
+			return number;
 		}
 	}
 }
