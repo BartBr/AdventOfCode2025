@@ -21,7 +21,8 @@ public class Day06 : HappyPuzzleBase<long>
 				if (operatorLine[i] == '+')
 				{
 					problem += number;
-				} else
+				}
+				else
 				{
 					problem *= number;
 				}
@@ -29,6 +30,7 @@ public class Day06 : HappyPuzzleBase<long>
 
 			sum += problem;
 		}
+
 		return sum;
 	}
 
@@ -46,6 +48,7 @@ public class Day06 : HappyPuzzleBase<long>
 
 				return number;
 			}
+
 			number = number * 10 + (numberString[i] - '0');
 		}
 
@@ -54,6 +57,54 @@ public class Day06 : HappyPuzzleBase<long>
 
 	public override long SolvePart2(Input input)
 	{
-		return 1;
+		long sum = 0;
+		var operatorLine = input.Lines[^1];
+		for (var i = 0; i < operatorLine.Length;)
+		{
+			if (operatorLine[i] == ' ')
+			{
+				i++;
+				continue;
+			}
+			var op = operatorLine[i];
+			var problem = ReadNumber(i, input.Lines);
+			long number = -1;
+			for (i++; i >= operatorLine.Length || number != 0; i++)
+			{
+				number = ReadNumber(i, input.Lines);
+				if (number != 0)
+				{
+					if (op == '+')
+					{
+						problem += number;
+					}
+					else
+					{
+						problem *= number;
+					}
+				}
+				else if (i >= operatorLine.Length)
+				{
+					return sum + problem;
+				}
+			}
+
+			sum += problem;
+		}
+
+		return sum;
+	}
+
+	private long ReadNumber(int pos, string[] lines)
+	{
+		long number = 0;
+		for (var i = 0; i < lines.Length - 1; i++)
+		{
+			if (pos >= lines[i].Length) continue;
+			if (lines[i][pos] == ' ') continue;
+			number = number * 10 + (lines[i][pos] - '0');
+		}
+
+		return number;
 	}
 }
