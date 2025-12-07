@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
-using System.Threading.Tasks;
 using AdventOfCode2025.Common;
 
 namespace AdventOfCode2025.Puzzles.Noe
@@ -101,6 +96,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 				{
 					continue;
 				}
+
 				if (text[i] == '@')
 				{
 					var subIndex = index / BIT_COUNT;
@@ -114,6 +110,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var removed = true;
 			while (removed)
 			{
+				//DisplayGrid(chars, width, height);
 				chars.CopyTo(temp);
 				removed = false;
 				for (var y = 0; y < height; y++)
@@ -185,6 +182,20 @@ namespace AdventOfCode2025.Puzzles.Noe
 			return totalCount;
 		}
 
+		private static void DisplayGrid(Span<long> chars, int width, int height)
+		{
+			for (var y = 0; y < height; y++)
+			{
+				for (var x = 0; x < width; x++)
+				{
+					var b = GetAt(chars, x, y, width, height);
+					Console.Write(b ? '@' : '.');
+				}
+				Console.WriteLine();
+			}
+			Console.WriteLine();
+		}
+
 		private static void SetBit(ref long originalValue, int index, bool value)
 		{
 			if (value)
@@ -207,14 +218,15 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 		private static bool GetAt(Span<long> chars, int x, int y, int width, int height)
 		{
-			if (x > 0 && x < width && y > 0 && y < height)
+			if (x < 0 || x >= width || y < 0 || y >= height)
 			{
-				var index = y * width + x;
-				var longIndex = index / BIT_COUNT;
-				var bitIndex = index % BIT_COUNT;
-				return (chars[longIndex] & 1 << bitIndex) != 0;
+				return false;
 			}
-			return false;
+
+			var index = y * width + x;
+			var longIndex = index / BIT_COUNT;
+			var bitIndex = index % BIT_COUNT;
+			return (chars[longIndex] & 1L << bitIndex) != 0;
 		}
 	}
 }
