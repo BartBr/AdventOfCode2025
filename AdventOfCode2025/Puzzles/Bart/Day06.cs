@@ -18,14 +18,22 @@ public class Day06 : HappyPuzzleBase<long>
 		// the inner while reads the number and math sign at the last row
 
 		var col = 0;
-		while (col < input.Lines[^1].Length) //Loop over the blocks
+		var operatorsLine = input.Lines[^1];
+		while (col < operatorsLine.Length) //Loop over the blocks
 		{
 			//Step 1 read the operator
-			while (col < input.Lines[^1].Length && input.Lines[^1][col] == ' ')
+			while (col < operatorsLine.Length && operatorsLine[col] == ' ')
 			{
 				col++;
 			}
-			var mathOperator = input.Lines[^1][col];
+
+			// Quick check to eliminate out-of-bounds exception
+			if (col == operatorsLine.Length)
+			{
+				break;
+			}
+
+			var mathOperator = operatorsLine[col];
 			//Console.WriteLine($"{mathOperator} at col {col}");
 
 			var blockStartIndex = col;
