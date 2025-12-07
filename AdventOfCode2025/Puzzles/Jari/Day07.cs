@@ -5,9 +5,9 @@ namespace AdventOfCode2025.Puzzles.Jari;
 
 [SuppressMessage("ReSharper", "EnforceIfStatementBraces")]
 [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
-public class Day07 : HappyPuzzleBase<int>
+public class Day07 : HappyPuzzleBase<long>
 {
-	public override int SolvePart1(Input input)
+	public override long SolvePart1(Input input)
 	{
 		var paths = new bool[input.Lines.Length][];
 		paths[0] = new bool[input.Lines[0].Length];
@@ -46,9 +46,9 @@ public class Day07 : HappyPuzzleBase<int>
 		return splitterEncounterCounter;
 	}
 
-	public override int SolvePart2(Input input)
+	public override long SolvePart2(Input input)
 	{
-		var knownPaths = new int[input.Lines.Length][];
+		var knownPaths = new long[input.Lines.Length][];
 		for (var i = 0; i < input.Lines[0].Length; i++)
 		{
 			if (input.Lines[0][i] == 'S')
@@ -60,24 +60,24 @@ public class Day07 : HappyPuzzleBase<int>
 		return 0;
 	}
 
-	private int TraverseTimeLines(int x, int y, string[] lines, ref int[][] knownPaths)
+	private long TraverseTimeLines(int x, int y, string[] lines, ref long[][] knownPaths)
 	{
-		knownPaths[y] ??= new int[lines[y].Length];
+		knownPaths[y] ??= new long[lines[y].Length];
 		if (knownPaths[y][x] != 0)
 		{
 			return knownPaths[y][x];
 		}
 
-		var counter = 1;
+		long counter = 1;
 		while (y < lines.Length && x < lines[y].Length)
 		{
 			if (lines[y][x] == '^')
 			{
-				if (y + 1 < lines.Length && x + 1 < lines[y + 1].Length)
+				if (y < lines.Length && x + 1 < lines[y].Length)
 				{
-					knownPaths[y + 1] ??= new int[lines[y].Length];
-					knownPaths[y + 1][x + 1] = TraverseTimeLines(x + 1, y + 1, lines, ref knownPaths);
-					counter += knownPaths[y + 1][x + 1];
+					knownPaths[y] ??= new long[lines[y].Length];
+					knownPaths[y][x + 1] = TraverseTimeLines(x + 1, y, lines, ref knownPaths);
+					counter += knownPaths[y][x + 1];
 				}
 
 				x--;
