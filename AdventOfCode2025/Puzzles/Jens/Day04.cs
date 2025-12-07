@@ -32,26 +32,30 @@ public class Day04 : HappyPuzzleBase<int>
 
 		var accessiblePaperRolls = 0;
 
-		for (var i = extendedWidth + 1; i < paperRollBuffer.Length - extendedWidth - 1; i++)
+		for (var x = 1; x < width; x++)
 		{
-			if (!paperRollBuffer[i])
+			for (var y = 1; y < height; y++)
 			{
-				continue;
-			}
-
-			var adjacentRollCount = 0;
-			foreach (var offset in adjacentOffsets)
-			{
-				var adjacentRollIndex = i + offset;
-				if (paperRollBuffer[adjacentRollIndex] && ++adjacentRollCount > 3)
+				var i = extendedWidth * y + x;
+				if (!paperRollBuffer[i])
 				{
-					break;
+					continue;
 				}
-			}
 
-			if (adjacentRollCount < 4)
-			{
-				accessiblePaperRolls++;
+				var adjacentRollCount = 0;
+				foreach (var offset in adjacentOffsets)
+				{
+					var adjacentRollIndex = i + offset;
+					if (paperRollBuffer[adjacentRollIndex] && ++adjacentRollCount > 3)
+					{
+						break;
+					}
+				}
+
+				if (adjacentRollCount < 4)
+				{
+					accessiblePaperRolls++;
+				}
 			}
 		}
 
@@ -85,32 +89,35 @@ public class Day04 : HappyPuzzleBase<int>
 
 		var accessiblePaperRolls = 0;
 
-		scoped Span<int> removalBuffer = stackalloc int[2_000];
-		var removalBufferSize = 0;
-
 		while (true)
 		{
-			for (var i = extendedWidth + 1; i < paperRollBuffer.Length - extendedWidth - 1; i++)
+			var removalBufferSize = 0;
+
+			for (var x = 1; x < width; x++)
 			{
-				if (!paperRollBuffer[i])
+				for (var y = 1; y < height; y++)
 				{
-					continue;
-				}
-
-				var adjacentRollCount = 0;
-				foreach (var offset in adjacentOffsets)
-				{
-					var adjacentRollIndex = i + offset;
-					if (paperRollBuffer[adjacentRollIndex] && ++adjacentRollCount > 3)
+					var i = extendedWidth * y + x;
+					if (!paperRollBuffer[i])
 					{
-						break;
+						continue;
 					}
-				}
 
-				if (adjacentRollCount < 4)
-				{
-					accessiblePaperRolls++;
-					removalBuffer[removalBufferSize++] = i;
+					var adjacentRollCount = 0;
+					foreach (var offset in adjacentOffsets)
+					{
+						var adjacentRollIndex = i + offset;
+						if (paperRollBuffer[adjacentRollIndex] && ++adjacentRollCount > 3)
+						{
+							break;
+						}
+					}
+
+					if (adjacentRollCount < 4)
+					{
+						removalBufferSize++;
+						paperRollBuffer[i] = false;
+					}
 				}
 			}
 
@@ -119,13 +126,8 @@ public class Day04 : HappyPuzzleBase<int>
 				break;
 			}
 
-			Debug.WriteLine("Removing " + removalBufferSize + " accessible paper rolls");
-			for(var i = 0; i < removalBufferSize; i++)
-			{
-				paperRollBuffer[removalBuffer[i]] = false;
-			}
-
-			removalBufferSize = 0;
+			Debug.WriteLine("This iteration removed " + removalBufferSize + " accessible paper rolls");
+			accessiblePaperRolls += removalBufferSize;
 		}
 
 		return accessiblePaperRolls;
