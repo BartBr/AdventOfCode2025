@@ -72,53 +72,53 @@ namespace AdventOfCode2025.Puzzles.Noe
 			return count;
 		}
 
-		// Add a check for existing ranges that fall into a new range
-		private static void AddRange(Span<long> ranges, long rangeLow, long rangeUp, ref int size)
+		private static void AddRange(Span<long> ranges, long low, long up, ref int size)
 		{
-			var lowRange = (rangeLow, rangeUp);
-			var upRange = (rangeLow, rangeUp);
-			var isLowInRange = IsInRange(ranges.Slice(0, size), rangeLow, out var lowRangeIndex);
-			var isUpInRange = IsInRange(ranges.Slice(0, size), rangeUp, out var upRangeIndex);
-			if (!isLowInRange && !isUpInRange)
+			var previousIndex = size;
+			ranges[size++] = low;
+			ranges[size++] = up;
+			for (var i = size / 2 - 2; i >= 0; i--)
 			{
-				ranges[size++] = rangeLow;
-				ranges[size++] = rangeUp;
-				return;
-			}
-
-			if (lowRangeIndex == upRangeIndex)
-			{
-				return;
-			}
-
-			var targetIndex = lowRangeIndex ?? upRangeIndex ?? size;
-			if (isLowInRange)
-			{
-				lowRange = (ranges[lowRangeIndex.Value], ranges[lowRangeIndex.Value + 1]);
-			}
-
-			if (isUpInRange)
-			{
-				upRange = (ranges[upRangeIndex.Value], ranges[upRangeIndex.Value + 1]);
-			}
-
-			ranges[targetIndex] = Math.Min(lowRange.rangeLow, upRange.rangeLow);
-			ranges[targetIndex + 1] = Math.Max(lowRange.rangeUp, upRange.rangeUp);
-			if (isLowInRange && isUpInRange)
-			{
-				if (upRangeIndex < size - 2)
+				ref var currentLow = ref ranges[i * 2];
+				ref var currentUp = ref ranges[i * 2 + 1];
+				// Added range is contained within current range
+				if (currentLow <= low && currentUp >= up)
 				{
-					ranges[upRangeIndex.Value] = ranges[size - 2];
-					ranges[upRangeIndex.Value + 1] = ranges[size - 1];
+					return;
 				}
-				size -= 2;
-			}
-			ReduceRange(ranges, ranges[targetIndex], ranges[targetIndex + 1], ref size);
-		}
 
-		private static void ReduceRange(Span<long> ranges, long low, long up, ref int size)
-		{
-			
+				// Current range is contained within added range
+				// Range is then replaced
+				if (currentLow > low && currentUp < up)
+				{
+					currentLow = low;
+					currentUp = up;
+					ranges[previousIndex] = ranges[size - 2];
+					ranges[previousIndex + 1] = ranges[size - 1];
+					size -= 2;
+					continue;
+				}
+
+				if (low > currentLow && low < currentUp)
+				{
+					currentUp = up;
+					low = currentLow;
+					ranges[previousIndex] = ranges[size - 2];
+					ranges[previousIndex + 1] = ranges[size - 1];
+					previousIndex = i * 2;
+					size -= 2;
+				}
+
+				if (up > currentLow && up < currentUp)
+				{
+					currentLow = low;
+					up = currentUp;
+					ranges[previousIndex] = ranges[size - 2];
+					ranges[previousIndex + 1] = ranges[size - 1];
+					previousIndex = i * 2;
+					size -= 2;
+				}
+			}
 		}
 
 		private static bool IsInRange(Span<long> ints, long number, out int? index)
