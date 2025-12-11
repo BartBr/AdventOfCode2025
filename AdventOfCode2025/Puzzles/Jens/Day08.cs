@@ -52,7 +52,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 				var a = unorderedPoints[i];
 				var b = unorderedPoints[j];
 				var dist = a.DistanceSquared(b);
-				allDistances.Add(new Line3D(a, b, dist));
+				allDistances.Add(new Line3D(a.Id, b.Id, dist));
 			}
 		}
 
@@ -62,17 +62,18 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 		scoped Span<Point3D> stackAllocKTreeBuffer = stackalloc Point3D[unorderedPoints.Length];
 		unorderedPoints.CopyTo(stackAllocKTreeBuffer);
 
-		var kdTree3 = VolumetricTree.Build(stackAllocKTreeBuffer);
+		Span<int> treeNodeBuffer = stackalloc int[stackAllocKTreeBuffer.Length * 6];
+		var kdTree3 = new VolumetricTreeAllocFree(treeNodeBuffer, stackAllocKTreeBuffer);
 
 		Span<Line3D> orderedDistances = stackalloc Line3D[unorderedPoints.Length];
 		for (var i = 0; i < unorderedPoints.Length; i++)
 		{
 			var point = unorderedPoints[i];
-			var findNearest = kdTree3.FindNearest(point, 0);
+			var findNearest = kdTree3.FindNearest(point.Id, 0);
 			while (orderedDistances.Slice(0, i).Contains(findNearest))
 			{
 				Debug.WriteLine($"Skipping {findNearest} due to already covered by opposite connection");
-				findNearest = kdTree3.FindNearest(point, findNearest.DistanceSquared);
+				findNearest = kdTree3.FindNearest(point.Id, findNearest.DistanceSquared);
 			}
 
 			orderedDistances[i] = findNearest;
@@ -81,7 +82,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 		orderedDistances.Sort();
 
 		// Encoding:
-		// Buffer can hold 75 numbers per multi-point line
+		// Buffer can hold 100 (99 + 1) numbers per multi-point line
 		// First number is the size of the buffer
 		Span<ushort> multiPointLineBuffers = stackalloc ushort[(unorderedPoints.Length / 2) * multiPointLineBufferWidth];
 		var multiPointLineBuffersSize = 0;
@@ -96,8 +97,8 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 			Debug.Assert(shortest == allDistances[i], "Shortest distance not at the start of the ordered distances array");
 #endif
 
-			var startCoordinateId = shortest.Start.Id;
-			var endCoordinateId = shortest.End.Id;
+			var startCoordinateId = shortest.Start;
+			var endCoordinateId = shortest.End;
 			for (var multiPointLineBufferIndex = 0; multiPointLineBufferIndex < multiPointLineBuffersSize; multiPointLineBufferIndex++)
 			{
 				var bufferStartIndex = multiPointLineBufferIndex * multiPointLineBufferWidth;
@@ -116,8 +117,8 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 
 				if (startCoordinatePartOfBuffer ^ endCoordinatePartOfBuffer)
 				{
-					Debug.WriteLineIf(startCoordinatePartOfBuffer, $"Coordinate {shortest.Start.Id} is already part of a MultiPointLine, but {shortest.End.Id} isn't. Adding to MultiPointLine");
-					Debug.WriteLineIf(endCoordinatePartOfBuffer, $"Coordinate {shortest.End.Id} is already part of a MultiPointLine, but {shortest.Start.Id} isn't. Adding to MultiPointLine");
+					Debug.WriteLineIf(startCoordinatePartOfBuffer, $"Coordinate {shortest.Start} is already part of a MultiPointLine, but {shortest.End} isn't. Adding to MultiPointLine");
+					Debug.WriteLineIf(endCoordinatePartOfBuffer, $"Coordinate {shortest.End} is already part of a MultiPointLine, but {shortest.Start} isn't. Adding to MultiPointLine");
 
 					var coordinateIdToAddToBuffer = startCoordinatePartOfBuffer ? endCoordinateId : startCoordinateId;
 					multiPointLineBuffers[bufferStartIndex + 1 + currentBufferSize] = coordinateIdToAddToBuffer;
@@ -138,7 +139,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 				}
 			}
 
-			Debug.WriteLine($"Coordinates [{shortest.Start.Id}, {shortest.End.Id}] weren't part of an existing MultiPointLine, creating new MultiPointLine3D");
+			Debug.WriteLine($"Coordinates [{shortest.Start}, {shortest.End}] weren't part of an existing MultiPointLine, creating new MultiPointLine3D");
 			var newBufferStartIndex = multiPointLineBuffersSize * multiPointLineBufferWidth;
 			multiPointLineBuffers[newBufferStartIndex] = 2;
 			multiPointLineBuffers[newBufferStartIndex + 1] = startCoordinateId;
@@ -234,7 +235,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 				var a = unorderedPoints[i];
 				var b = unorderedPoints[j];
 				var dist = a.DistanceSquared(b);
-				allDistances.Add(new Line3D(a, b, dist));
+				allDistances.Add(new Line3D(a.Id, b.Id, dist));
 			}
 		}
 
@@ -244,17 +245,18 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 		scoped Span<Point3D> stackAllocKTreeBuffer = stackalloc Point3D[unorderedPoints.Length];
 		unorderedPoints.CopyTo(stackAllocKTreeBuffer);
 
-		var kdTree3 = VolumetricTree.Build(stackAllocKTreeBuffer);
+		Span<int> treeNodeBuffer = stackalloc int[stackAllocKTreeBuffer.Length * 6];
+		var kdTree3 = new VolumetricTreeAllocFree(treeNodeBuffer, stackAllocKTreeBuffer);
 
 		Span<Line3D> orderedDistances = stackalloc Line3D[unorderedPoints.Length];
 		for (var i = 0; i < unorderedPoints.Length; i++)
 		{
 			var point = unorderedPoints[i];
-			var findNearest = kdTree3.FindNearest(point, 0);
+			var findNearest = kdTree3.FindNearest(point.Id, 0);
 			while (orderedDistances.Slice(0, i).Contains(findNearest))
 			{
 				Debug.WriteLine($"Skipping {findNearest} due to already covered by opposite connection");
-				findNearest = kdTree3.FindNearest(point, findNearest.DistanceSquared);
+				findNearest = kdTree3.FindNearest(point.Id, findNearest.DistanceSquared);
 			}
 
 			orderedDistances[i] = findNearest;
@@ -278,8 +280,8 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 			Debug.Assert(shortest == allDistances[i], "Shortest distance not at the start of the ordered distances array");
 #endif
 
-			var startCoordinateId = shortest.Start.Id;
-			var encCoordinateId = shortest.End.Id;
+			var startCoordinateId = shortest.Start;
+			var endCoordinateId = shortest.End;
 			for (var multiPointLineBufferIndex = 0; multiPointLineBufferIndex < multiPointLineBuffersSize; multiPointLineBufferIndex++)
 			{
 				var bufferStartIndex = multiPointLineBufferIndex * multiPointLineBufferWidth;
@@ -287,7 +289,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 				var currentBufferSlice = multiPointLineBuffers.Slice(bufferStartIndex + 1, currentBufferSize);
 
 				var startCoordinatePartOfBuffer = currentBufferSlice.Contains(startCoordinateId);
-				var endCoordinatePartOfBuffer = currentBufferSlice.Contains(encCoordinateId);
+				var endCoordinatePartOfBuffer = currentBufferSlice.Contains(endCoordinateId);
 
 				if (startCoordinatePartOfBuffer && endCoordinatePartOfBuffer)
 				{
@@ -298,23 +300,23 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 
 				if (startCoordinatePartOfBuffer ^ endCoordinatePartOfBuffer)
 				{
-					Debug.WriteLineIf(startCoordinatePartOfBuffer, $"Coordinate {shortest.Start.Id} is already part of a MultiPointLine, but {shortest.End.Id} isn't. Adding to MultiPointLine");
-					Debug.WriteLineIf(endCoordinatePartOfBuffer, $"Coordinate {shortest.End.Id} is already part of a MultiPointLine, but {shortest.Start.Id} isn't. Adding to MultiPointLine");
+					Debug.WriteLineIf(startCoordinatePartOfBuffer, $"Coordinate {shortest.Start} is already part of a MultiPointLine, but {shortest.End} isn't. Adding to MultiPointLine");
+					Debug.WriteLineIf(endCoordinatePartOfBuffer, $"Coordinate {shortest.End} is already part of a MultiPointLine, but {shortest.Start} isn't. Adding to MultiPointLine");
 
-					var coordinateIdToAddToBuffer = startCoordinatePartOfBuffer ? encCoordinateId : startCoordinateId;
-					multiPointLineBuffers[bufferStartIndex + 1 + currentBufferSize] = coordinateIdToAddToBuffer;
+					var encodedCoordinateToAddToBuffer = startCoordinatePartOfBuffer ? endCoordinateId : startCoordinateId;
+					multiPointLineBuffers[bufferStartIndex + 1 + currentBufferSize] = encodedCoordinateToAddToBuffer;
 
 					Debug.Assert(currentBufferSize + 1 < multiPointLineBufferWidth, "Buffer size overflow detected");
 
 					multiPointLineBuffers[bufferStartIndex] = (ushort) ++currentBufferSize;
 
 					// No need to check for buffers prior to this one, as the they didn't contain either of the two coordinates anyways.
-					// Only newly added coordinate can result in a merge... AND ONLY 1 merge at a time.
+					// Only newly added coordinate can result in a merge... AND ONLY 1.
 					var buffersApplicableForMerge = multiPointLineBuffers.Slice(bufferStartIndex, (multiPointLineBuffersSize - multiPointLineBufferIndex) * multiPointLineBufferWidth);
 					MergeMultiPointBuffersIfApplicable(
 						ref buffersApplicableForMerge,
 						ref multiPointLineBuffersSize,
-						coordinateIdToAddToBuffer,
+						encodedCoordinateToAddToBuffer,
 						multiPointLineBufferWidth);
 					if (multiPointLineBuffers[0] == unorderedPoints.Length)
 					{
@@ -324,11 +326,11 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 				}
 			}
 
-			Debug.WriteLine($"Coordinates [{shortest.Start.Id}, {shortest.End.Id}] weren't part of an existing MultiPointLine, creating new MultiPointLine3D");
+			Debug.WriteLine($"Coordinates [{shortest.Start}, {shortest.End}] weren't part of an existing MultiPointLine, creating new MultiPointLine3D");
 			var newBufferStartIndex = multiPointLineBuffersSize * multiPointLineBufferWidth;
 			multiPointLineBuffers[newBufferStartIndex] = 2;
 			multiPointLineBuffers[newBufferStartIndex + 1] = startCoordinateId;
-			multiPointLineBuffers[newBufferStartIndex + 2] = encCoordinateId;
+			multiPointLineBuffers[newBufferStartIndex + 2] = endCoordinateId;
 
 			++multiPointLineBuffersSize;
 
@@ -358,7 +360,7 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 		}
 
 		finish: ;
-		return ((ulong) shortest.Start.X) * (ulong) shortest.End.X;
+		return (ulong) unorderedPoints[shortest.Start].X * (ulong) unorderedPoints[shortest.End].X;
 	}
 
 	private static void MergeMultiPointBuffersIfApplicable(ref Span<ushort> multiPointLineBuffers, ref int multiPointLineBuffersSize, ushort newlyAddedEncodedCoordinate, int maxBufferWidth)
@@ -428,30 +430,43 @@ public class Day08 : HappyPuzzleBase<int, ulong>
 /// Because of the additional constraint on the FindNearest method, it's possible to search for the nearest neighbor of a point given a minimum distance that has to be maintained.
 /// </summary>
 /// <see href="https://en.wikipedia.org/wiki/K-d_tree">Wikipedia K-d tree</see>
-readonly file ref struct VolumetricTree
+readonly file ref struct VolumetricTreeAllocFree
 {
-	private readonly TreeNode _root;
-
 	private static readonly Comparison<Point3D> XComparer = (coordinateA, coordinateB) => coordinateA.X - coordinateB.X;
 	private static readonly Comparison<Point3D> YComparer = (coordinateA, coordinateB) => coordinateA.Y - coordinateB.Y;
 	private static readonly Comparison<Point3D> ZComparer = (coordinateA, coordinateB) => coordinateA.Z - coordinateB.Z;
 
-	private VolumetricTree(TreeNode root)
+	// Encoding of a tree node is the following:
+	// We'll use 2 slots per tree node, either index of / 2 indicates the point id. Works by (ab)using integer division not yielding floating point numbers.
+	// First slot is an encoding off all axis values offset by 17 (works bc max number is 100_000, which requires 17 bits), thus x value is not offsetted, y is offsetted by 17 and z is offstted by 34
+	// For the second slot, the first 2 bits will describe the axis for comparison, following by 11 bits for the id of the left node and another 11 bits for the id of the right node.
+
+	// Second approach:
+	// I figured that, aside from being incredibly hard to debug, encoding multiple numbers would probably incur a higher performance penalty compared to just reserving a slot per number required.
+	// No encoding, but we reserve 6 subsequent indices per node
+	// i / 6 is the id of the point
+	// At index i: x-value of the point
+	// At index i + 1: y-value of the point
+	// At index i + 2: z-value of the point
+	// At index i + 3: the axis id, used for comparison
+	// At index i + 4: the index of the left child node (divide by 6 to get the point id)
+	// At index i + 5: the index of the right child node (divide by 6 to get the point id)
+	private readonly Span<int> _encodedTreeNodes;
+	private readonly ushort _encodedRootNodeId;
+
+	public VolumetricTreeAllocFree(in Span<int> encoded, in Span<Point3D> points)
 	{
-		_root = root;
+		Debug.Assert(encoded.Length >= points.Length * 6, "Encoded buffer too small for given number of points");
+		_encodedTreeNodes = encoded;
+
+		_encodedRootNodeId = Build(ref _encodedTreeNodes, points);
 	}
 
-	public static VolumetricTree Build(scoped Span<Point3D> points)
-	{
-		var rootNode = Build(points, 0) ?? throw new ArgumentException();
-		return new VolumetricTree(rootNode);
-	}
-
-	private static TreeNode? Build(scoped Span<Point3D> points, int depth)
+	private static ushort Build(ref Span<int> encodedTreeNodes, scoped Span<Point3D> points, int depth = 0)
 	{
 		if (points.Length == 0)
 		{
-			return null;
+			return ushort.MaxValue;
 		}
 
 		var axis = depth % 3;
@@ -463,76 +478,96 @@ readonly file ref struct VolumetricTree
 		};
 
 		points.Sort(comparer);
+
 		var midPointIndex = points.Length / 2;
 
-		var node = new TreeNode(points[midPointIndex], axis)
-		{
-			Left = Build(points.Slice(0, midPointIndex), depth + 1),
-			Right = Build(points.Slice(midPointIndex + 1), depth + 1)
-		};
+		var point = points[midPointIndex];
 
-		return node;
+		var leftChildTreeNodeIndex = Build(ref encodedTreeNodes, points.Slice(0, midPointIndex), depth + 1);
+		var rightChildTreeNodeIndex = Build(ref encodedTreeNodes, points.Slice(midPointIndex + 1), depth + 1);
+
+		var nodeIndex = (ushort) (point.Id * 6);
+		encodedTreeNodes[nodeIndex] = point.X;
+		encodedTreeNodes[nodeIndex + 1] = point.Y;
+		encodedTreeNodes[nodeIndex + 2] = point.Z;
+		encodedTreeNodes[nodeIndex + 3] = axis;
+		encodedTreeNodes[nodeIndex + 4] = leftChildTreeNodeIndex;
+		encodedTreeNodes[nodeIndex + 5] = rightChildTreeNodeIndex;
+
+		return point.Id;
 	}
 
-	public Line3D FindNearest(Point3D target, long minimumDistanceSquared)
+	public Line3D FindNearest(ushort targetId, long minimumDistanceSquared)
 	{
-		var bestPoint = default(Point3D);
+		var bestPointId = ushort.MaxValue;
 		var bestDistanceSquared = long.MaxValue;
 
-		Search(_root);
-		return new(target, bestPoint, bestDistanceSquared);
+		var targetNodeId = targetId * 6;
 
-		void Search(TreeNode? node)
+		var targetX = _encodedTreeNodes[targetNodeId];
+		var targetY = _encodedTreeNodes[targetNodeId + 1];
+		var targetZ = _encodedTreeNodes[targetNodeId + 2];;
+
+		Search(_encodedTreeNodes, _encodedRootNodeId);
+		return new(targetId, bestPointId, bestDistanceSquared);
+
+		void Search(scoped Span<int> encodedTreeNodes, ushort nodeId)
 		{
-			if (node == null)
+			Debug.WriteLine($"-- VolumetricTreeAllocFree: NodeId: {nodeId}");
+			if (nodeId == ushort.MaxValue)
 			{
 				return;
 			}
 
-			var currentDistanceSquared = node.Point.DistanceSquared(target);
+			var nodeIndex = nodeId * 6;
+
+			scoped var nodeSlice = encodedTreeNodes.Slice(nodeIndex, 6);
+
+			var nodeX = nodeSlice[0];
+			var nodeY = nodeSlice[1];
+			var nodeZ = nodeSlice[2];
+
+			long dx = targetX - nodeX;
+			long dy = targetY - nodeY;
+			long dz = targetZ - nodeZ;
+
+			var currentDistanceSquared = dx * dx + dy * dy + dz * dz;
 			if (currentDistanceSquared > minimumDistanceSquared && currentDistanceSquared < bestDistanceSquared)
 			{
 				bestDistanceSquared = currentDistanceSquared;
-				bestPoint = node.Point;
+				bestPointId = nodeId;
 			}
 
-			long diff = node.Axis switch
+			var nodeAxis = nodeSlice[3];
+			var nodeLeftChildIndex = (ushort) nodeSlice[4];
+			var nodeRightChildIndex = (ushort) nodeSlice[5];
+
+			Debug.WriteLine($"-- VolumetricTreeAllocFree: Left NodeId: {nodeLeftChildIndex} | Right NodeId: {nodeRightChildIndex}");
+
+			var diff = nodeAxis switch
 			{
-				0 => target.X - node.Point.X,
-				1 => target.Y - node.Point.Y,
-				_ => target.Z - node.Point.Z
+				0 => dx,
+				1 => dy,
+				_ => dz
 			};
 
+			Debug.WriteLine($"-- VolumetricTreeAllocFree: Axis: {nodeAxis} | Diff: {diff}");
+
 			// determine which child node to search next
-			var first = diff < 0 ? node.Left : node.Right;
-			Search(first);
+			var first = diff < 0 ? nodeLeftChildIndex : nodeRightChildIndex;
+			Search(encodedTreeNodes, first);
 
 			// if the best distance found so far could be improved by searching the other side of the tree, do so
 			if (diff * diff < bestDistanceSquared)
 			{
-				var second = diff < 0 ? node.Right : node.Left;
-				Search(second);
+				var second = diff < 0 ? nodeRightChildIndex : nodeLeftChildIndex;
+				Search(encodedTreeNodes, second);
 			}
 		}
 	}
 }
 
-file record TreeNode
-{
-	public readonly Point3D Point;
-	public readonly int Axis;
-
-	public TreeNode? Left { get; set; }
-	public TreeNode? Right { get; set; }
-
-	public TreeNode(Point3D point, int axis)
-	{
-		Point = point;
-		Axis = axis;
-	}
-}
-
-readonly file record struct Line3D(Point3D Start, Point3D End, long DistanceSquared) : IComparable<Line3D>
+readonly file record struct Line3D(ushort Start, ushort End, long DistanceSquared) : IComparable<Line3D>
 {
 	public int CompareTo(Line3D other)
 	{
@@ -572,6 +607,7 @@ readonly file struct Point3D : IEquatable<Point3D>
 		Z = z;
 	}
 
+#if DEBUG
 	public long DistanceSquared(Point3D other)
 	{
 		long dx = X - other.X;
@@ -579,6 +615,7 @@ readonly file struct Point3D : IEquatable<Point3D>
 		long dz = Z - other.Z;
 		return dx * dx + dy * dy + dz * dz;
 	}
+#endif
 
 	public override string ToString() => $"Id={Id} ({X}, {Y}, {Z})";
 
