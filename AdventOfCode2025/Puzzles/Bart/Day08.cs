@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using AdventOfCode2025.Common;
@@ -8,7 +9,6 @@ namespace AdventOfCode2025.Puzzles.Bart;
 [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach")]
 public class Day08 : HappyPuzzleBase<int, long>
 {
-
 	public override int SolvePart1(Input input)
 	{
 		var amountOfJunctionBoxes = input.Lines.Length;
@@ -20,7 +20,9 @@ public class Day08 : HappyPuzzleBase<int, long>
 		}
 
 		var amountOfDistances = ((amountOfJunctionBoxes -1) * amountOfJunctionBoxes) / 2;
-		scoped Span<Distance> distanceSpan = stackalloc Distance[amountOfDistances];
+		var distancePool = ArrayPool<Distance>.Shared;
+		var distances = distancePool.Rent(amountOfDistances);
+		scoped var distanceSpan = distances.AsSpan(0, amountOfDistances);
 
 		var distanceIndex = 0;
 		for (var i = 0; i < amountOfJunctionBoxes-1; i++)
@@ -30,7 +32,7 @@ public class Day08 : HappyPuzzleBase<int, long>
 				var jbA = junctionBoxes[i];
 				var jbB = junctionBoxes[j];
 				var distance = JunctionBox.CalculateDistance(jbA, jbB);
-				distanceSpan[distanceIndex++] = new Distance(i, j, distance);
+				distanceSpan[distanceIndex++] = new Distance((ushort)i, (ushort)j, distance);
 			}
 		}
 		//Sort distances
@@ -68,6 +70,8 @@ public class Day08 : HappyPuzzleBase<int, long>
 
 			distanceIndex++;
 		}
+
+		distancePool.Return(distances);
 
 		scoped Span<int> amountOfJunctionsInCircuit =  stackalloc int[amountOfJunctionBoxes];
 		amountOfJunctionsInCircuit.Fill(0);
@@ -152,7 +156,7 @@ public class Day08 : HappyPuzzleBase<int, long>
 		}
 	}
 
-	private readonly record struct Distance(int JunctionAIndex, int JunctionBIndex, long Value): IComparable<Distance>
+	private readonly record struct Distance(ushort JunctionAIndex, ushort JunctionBIndex, long Value): IComparable<Distance>
 	{
 		public int CompareTo(Distance other)
 		{
@@ -171,7 +175,9 @@ public class Day08 : HappyPuzzleBase<int, long>
 		}
 
 		var amountOfDistances = ((amountOfJunctionBoxes -1) * amountOfJunctionBoxes) / 2;
-		scoped Span<Distance> distanceSpan = stackalloc Distance[amountOfDistances];
+		var distancePool = ArrayPool<Distance>.Shared;
+		var distances = distancePool.Rent(amountOfDistances);
+		scoped var distanceSpan = distances.AsSpan(0, amountOfDistances);
 
 		var distanceIndex = 0;
 		for (var i = 0; i < amountOfJunctionBoxes-1; i++)
@@ -181,7 +187,7 @@ public class Day08 : HappyPuzzleBase<int, long>
 				var jbA = junctionBoxes[i];
 				var jbB = junctionBoxes[j];
 				var distance = JunctionBox.CalculateDistance(jbA, jbB);
-				distanceSpan[distanceIndex++] = new Distance(i, j, distance);
+				distanceSpan[distanceIndex++] = new Distance((ushort)i, (ushort)j, distance);
 			}
 		}
 		//Sort distances
@@ -221,6 +227,9 @@ public class Day08 : HappyPuzzleBase<int, long>
 		}
 
 		var lastJoinedDistance = distanceSpan[distanceIndex - 1];
+
+		distancePool.Return(distances);
+
 		long x1 = junctionBoxes[lastJoinedDistance.JunctionAIndex].X;
 		long x2 = junctionBoxes[lastJoinedDistance.JunctionBIndex].X;
 		return x1 * x2;
