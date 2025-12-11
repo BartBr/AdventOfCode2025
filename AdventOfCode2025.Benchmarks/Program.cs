@@ -15,6 +15,9 @@ var config = DefaultConfig.Instance
 // Runs latest benchmark
 BenchmarkRunner.Run<AdventOfCode2025.Benchmarks.Generated.Day02Benchmark>(config);
 
+// To run a specific implementation solution
+// BenchmarkRunner.Run<AdventOfCode2025.Benchmarks.StandaloneBenchmarkWrapper<AdventOfCode2025.Puzzles.Jens.Day08, int, ulong>>(config);
+
 // To run a specific benchmark
 // BenchmarkRunner.Run<AdventOfCode2025.Benchmarks.Generated.Day01Benchmark>(config);
 
