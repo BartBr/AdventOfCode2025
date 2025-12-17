@@ -2,7 +2,7 @@
 
 namespace AdventOfCode2025.Puzzles.Jens;
 
-public class Day09 : HappyPuzzleBase<ulong, ulong>
+public class Day09 : HappyPuzzleBase<ulong>
 {
 	public override ulong SolvePart1(Input input)
 	{
@@ -81,6 +81,15 @@ public class Day09 : HappyPuzzleBase<ulong, ulong>
 			{
 				var referenceEndingPoint = pointBuffer[j];
 
+				// Check whether it's actually worth to check for intersections in the first place.
+				// If the current surface area is smaller than our current max surface area, there's no point in checking for intersections
+				// and this is a much cheaper operation compared to checking for intersections first and then calculating the surface area.
+				var surfaceArea = referenceStartingPoint.CalculateSurfaceArea(referenceEndingPoint);
+				if (surfaceArea <= maxSurfaceArea)
+				{
+					continue;
+				}
+
 				int minX, minY, maxX, maxY;
 				if (referenceStartingPoint.X <  referenceEndingPoint.X)
 				{
@@ -112,11 +121,7 @@ public class Day09 : HappyPuzzleBase<ulong, ulong>
 
 				if (!intersects)
 				{
-					var surfaceArea = referenceStartingPoint.CalculateSurfaceArea(referenceEndingPoint);
-					if (surfaceArea > maxSurfaceArea)
-					{
-						maxSurfaceArea = surfaceArea;
-					}
+					maxSurfaceArea = surfaceArea;
 				}
 			}
 		}
