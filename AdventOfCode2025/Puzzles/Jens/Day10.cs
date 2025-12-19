@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using AdventOfCode2025.Common;
 
 namespace AdventOfCode2025.Puzzles.Jens;
@@ -152,6 +153,140 @@ public class Day10 : HappyPuzzleBase<int>
 
 	public override int SolvePart2(Input input)
 	{
-		throw new NotImplementedException();
+		// Assumption that there will be no more than 16 buttons;
+		scoped Span<Vector<ushort>> vectorizedButtons = stackalloc Vector<ushort>[16];
+
+		// Intermediate parsing buffer before passed onto Vector<ushort> ctor
+		// Stackalloc-ed array should be memory-aligned with the size of a Vector<ushort> (16 indices on my own machine, unsure whether this could vary depending the architecture)
+		scoped Span<ushort> vectorParsingBuffer = stackalloc ushort[Vector<ushort>.Count];
+
+		var sum = 0;
+		foreach (var machineLine in input.Lines)
+		{
+			var machineLineSpan = machineLine.AsSpan();
+
+			// Parse joltage requirements
+			// eg: {3,5,4,7}
+			vectorParsingBuffer.Clear();
+			var joltageRequirementCount = 0;
+			var joltageRequirementsStartIndex = machineLineSpan.LastIndexOf('{');
+
+			// start is incremented by one to skip the opening '{'
+			// end is decremented by one to skip the closing '}'
+			ushort currentNumber = 0;
+			for (var i = joltageRequirementsStartIndex + 1; i < machineLineSpan.Length - 1; i++)
+			{
+				var c = machineLineSpan[i];
+				if (c == ',')
+				{
+					vectorParsingBuffer[joltageRequirementCount++] = currentNumber;
+					currentNumber = 0;
+				}
+				else
+				{
+					currentNumber = (ushort) (currentNumber * 10 + (c - '0'));
+				}
+			}
+
+			vectorParsingBuffer[joltageRequirementCount] = currentNumber;
+
+			var vectorizedTargetJoltageRequirements = new Vector<ushort>(vectorParsingBuffer);
+
+			// Parse buttons
+			// eg: (3) (1,3) (2) (2,3) (0,2) (0,1)
+			var buttonsCount = 0;
+			var buttonsStartIndex = machineLineSpan.IndexOf('(');
+
+			for (var i = buttonsStartIndex + 1; i < joltageRequirementsStartIndex - 1; i += 2)
+			{
+				vectorParsingBuffer.Clear();
+
+				for (;; i += 2)
+				{
+					var c = machineLineSpan[i];
+					if (c == ' ')
+					{
+						break;
+					}
+
+					vectorParsingBuffer[c - '0'] = 1;
+				}
+
+				vectorizedButtons[buttonsCount++] = new Vector<ushort>(vectorParsingBuffer);
+			}
+
+			scoped var vectorizedButtonSlice = vectorizedButtons.Slice(0, buttonsCount);
+
+			// Start algo for current problem statement
+			var depth = 0;
+			while (!Part2_FindMinimumButtomPressCountRecursive(vectorizedButtonSlice, Vector<ushort>.Zero, vectorizedTargetJoltageRequirements, depth))
+			{
+				Console.WriteLine($"No result found at depth: {depth}, retrying...");
+
+				depth++;
+			}
+
+			// Need to +1 because our algorithm is 0-based
+			depth++;
+			sum += depth;
+
+			Debug.WriteLine($"Button press count: {depth} - {machineLine}");
+			Console.WriteLine("Solved! Current sum is now: " + sum);
+		}
+
+		return sum;
 	}
+
+	private static bool Part2_FindMinimumButtomPressCountRecursive(scoped in Span<Vector<ushort>> remainingButtons, scoped in Vector<ushort> inputState, scoped in Vector<ushort> targetState, int depth)
+	{
+		// Contrary to part 1, now we might actually have to press buttons multiple times... *unfortunately*
+		var localButtonCount = remainingButtons.Length;
+		for (var i = 0; i < localButtonCount; i++)
+		{
+			var currentButton = remainingButtons[i];
+
+			// XOR-ing our button (bitmask) into the inputState to invert specified bits
+			var currentState = inputState + currentButton;
+
+			if (depth == 0)
+			{
+				// Reached desired depth, check if we have a match
+				if (currentState == targetState)
+				{
+#if DEBUG
+					Debug.Write($"({string.Join(',', Part2_GetButtonDecimals(currentButton))}) - ");
+#endif
+					// Match has been found, abort
+					return true;
+				}
+			}
+			else
+			{
+				// Try again with remaining buttons until a depth of 0 has been reached
+				if (Part2_FindMinimumButtomPressCountRecursive(remainingButtons, currentState, targetState, depth - 1))
+				{
+#if DEBUG
+					Debug.Write($"({string.Join(',', Part2_GetButtonDecimals(currentButton))}) - ");
+#endif
+					return true;
+				}
+			}
+		}
+
+		// No targetState match was found for the all passed in remaining buttons and utilized parent buttons
+		return false;
+	}
+
+#if DEBUG
+	private static IEnumerable<uint> Part2_GetButtonDecimals(Vector<ushort> vectorizedButton)
+	{
+		for (var i = 0; i < 10; i++)
+		{
+			if (vectorizedButton[i] == 1)
+			{
+				yield return (uint) i;
+			}
+		}
+	}
+#endif
 }
