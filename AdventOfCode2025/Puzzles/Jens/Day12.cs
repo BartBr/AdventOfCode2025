@@ -90,6 +90,6 @@ public class Day12 : HappyPuzzleBase<int, string>
 
 	public override string SolvePart2(Input input)
 	{
-		throw new NotImplementedException();
+		return "Click!";
 	}
 }
