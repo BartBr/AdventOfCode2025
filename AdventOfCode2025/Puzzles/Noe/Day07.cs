@@ -53,8 +53,9 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var beams = new HashSet(buffer, filter);
 			var start = input.Lines[0].IndexOf('S');
 			beams.Add(start);
-			foreach (var line in input.Lines.AsSpan(1))
+			for (var j = 2; j < input.Lines.Length; j += 2)
 			{
+				var line = input.Lines[j];
 				var bc = beams.Count;
 				for (var i = bc - 1; i >= 0; i--)
 				{
@@ -87,8 +88,9 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var start = input.Lines[0].IndexOf('S');
 			beams.Add(start);
 			previousLine[start] = 1;
-			foreach (var line in input.Lines.AsSpan(1))
+			for (var j = 2; j < input.Lines.Length; j += 2)
 			{
+				var line = input.Lines[j];
 				var bc = beams.Count;
 				for (var i = bc - 1; i >= 0; i--)
 				{
