@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AdventOfCode2025.Common;
 
 namespace AdventOfCode2025.Puzzles.Noe
@@ -60,8 +59,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 				for (var i = bc - 1; i >= 0; i--)
 				{
 					var beam = beams[i];
-					var c = line[beam];
-					if (c == '^')
+					if (line[beam] == '^')
 					{
 						// Remove origin beam
 						beams.RemoveAt(i);
