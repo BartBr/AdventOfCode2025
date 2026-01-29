@@ -29,12 +29,16 @@ public class Day07 : HappyPuzzleBase<int, long>
 		for (var i = 2; i < input.Lines.Length; i += 2)
 		{
 			var lineSpan = input.Lines[i].AsSpan();
+
+			// Slight micro-optimization below which prevents some bounds-checking and subsequently also prevents additional branch instructions and branch mispredictions
+			var lastAddedBeamIndex = -1;
 			for (var j = 0; j < previousBeamsSize; j++)
 			{
 				var previousBeamIndex = previousBeams[j];
+
 				// If this is true, that means that a splitter was to the left of the current line index
 				// No 2 splitters can ever be adjacent (without an empty space inbetween)
-				if (currentBeamsSize > 0 && currentBeams[currentBeamsSize - 1] == previousBeamIndex)
+				if (lastAddedBeamIndex == previousBeamIndex)
 				{
 					// NOP
 					continue;
@@ -46,16 +50,16 @@ public class Day07 : HappyPuzzleBase<int, long>
 
 					// Same check as above, except if the splitter occured one spot earlier (or there was no splitter at all)
 					var leftTachyonBeamIndex = previousBeamIndex - 1;
-					if (currentBeamsSize == 0 || currentBeams[currentBeamsSize - 1] != leftTachyonBeamIndex)
+					if (lastAddedBeamIndex != leftTachyonBeamIndex)
 					{
 						currentBeams[currentBeamsSize++] = leftTachyonBeamIndex;
 					}
 
-					currentBeams[currentBeamsSize++] = previousBeamIndex + 1;
+					lastAddedBeamIndex = currentBeams[currentBeamsSize++] = previousBeamIndex + 1;
 				}
 				else
 				{
-					currentBeams[currentBeamsSize++] = previousBeamIndex;
+					lastAddedBeamIndex = currentBeams[currentBeamsSize++] = previousBeamIndex;
 				}
 			}
 
