@@ -44,7 +44,6 @@ namespace AdventOfCode2025.Puzzles.Noe
 				{
 					if (line[i] == ',')
 					{
-						i++;
 						break;
 					}
 					var lastDigit = line[i] - '0';
@@ -71,7 +70,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 			public readonly int CompareTo(Connection other)
 			{
-				return Length.CompareTo(other.Length);
+				return StartIndex.CompareTo(other.StartIndex);
 			}
 
 			public override string ToString()
@@ -80,8 +79,39 @@ namespace AdventOfCode2025.Puzzles.Noe
 			}
 		}
 
+		private ref struct SortedConnectionSet
+		{
+			public int Count = 0;
+			private readonly Span<Connection> _connections;
+
+			public SortedConnectionSet(Span<Connection> connections)
+			{
+				_connections = connections;
+			}
+
+			public void Add(Connection connection)
+			{
+				var i = 0;
+				for (; i < _connections.Length; i++)
+				{
+					ref var c = ref _connections[i];
+					if (c.Length == 0 || c.Length > connection.Length)
+					{
+						var length = Math.Max(Count - i, 0);
+						var source = _connections.Slice(i, length);
+						var dest = _connections.Slice(i + 1, length);
+						source.CopyTo(dest);
+						_connections[i] = connection;
+						Count = Math.Min(_connections.Length - 1, Count + 1);
+						return;
+					}
+				}
+			}
+		}
+
 		public override long SolvePart1(Input input)
 		{
+			const int ITERATION_COUNT = 10;
 			Span<Vector3> nodes = stackalloc Vector3[input.Lines.Length];
 			for (var i = 0; i < input.Lines.Length; i++)
 			{
@@ -89,40 +119,22 @@ namespace AdventOfCode2025.Puzzles.Noe
 			}
 
 			// Gather all closest connections
-			Span<Connection> connections = stackalloc Connection[nodes.Length];
-			for (var i = 0; i < nodes.Length; i++)
+			Span<Connection> connections = stackalloc Connection[ITERATION_COUNT + 1];
+			var set = new SortedConnectionSet(connections);
+			for (var i = 0; i < nodes.Length - 1; i++)
 			{
 				ref var start = ref nodes[i];
-				var maxIndex = -1;
-				var currentSize = long.MaxValue;
-				for (var j = 0; j < nodes.Length; j++)
+				for (var j = i + 1; j < nodes.Length; j++)
 				{
-					if (j == i)
-					{
-						continue;
-					}
-
-					if ((i != 0 && connections[j].EndIndex == i))
-					{
-						break;
-					}
-
 					ref var end = ref nodes[j];
 					var dist = start.DistanceSquared(end);
-					if (dist < currentSize)
-					{
-						currentSize = dist;
-						maxIndex = j;
-					}
+					var c = new Connection(dist, i, j);
+					set.Add(c);
 				}
-				connections[i] = new Connection(currentSize, i, maxIndex);
 			}
 
-			// Only keep X shortest ones
-			const int ITERATION_COUNT = 10;
-			connections.Sort();
+			// Only keep ITERATION_COUNT shortest ones
 			connections = connections.Slice(0, ITERATION_COUNT);
-			connections.Sort(CompareConnectionEnd);
 
 			Span<int> groupItems = stackalloc int[connections.Length];
 			Span<int> groupSize = stackalloc int[connections.Length];
@@ -133,56 +145,20 @@ namespace AdventOfCode2025.Puzzles.Noe
 			for (var i = 0; i < connections.Length; i++)
 			{
 				// Create a new group
-				if (prevEndIndex != connections[i].EndIndex)
+				if (prevEndIndex != connections[i].StartIndex)
 				{
 					groupId++;
 				}
 
 				groupItems[i] = groupId;
 				groupSize[groupId] = groupSize[groupId] + 1;
-				prevEndIndex = connections[i].EndIndex;
+				prevEndIndex = connections[i].StartIndex;
 			}
 
-			// Connect Start to Ends
 			for (var i = 0; i < connections.Length; i++)
 			{
-				ref var current = ref connections[i];
-				var start = current.StartIndex;
-				// If we know the start is after us, well look after us
-				var j = start > current.EndIndex ? i + 1 : 0;
-				// Search matching group
-				for (; j < connections.Length; j++)
-				{
-					if (connections[j].EndIndex == start)
-					{
-						// If found group is already checked for connection
-						if (j < i)
-						{
-							var group = groupItems[j];
-							// Change the group id of all current group
-							var k = i;
-							var end = current.EndIndex;
-							while (k < connections.Length && end == connections[k].EndIndex)
-							{
-								groupItems[k] = group;
-								k++;
-							}
-						}
-						else
-						{
-							var group = groupItems[i];
-							// Change the group id of all other's group
-							var k = j;
-							var end = connections[k].EndIndex;
-							while (k < connections.Length && end == connections[k].EndIndex)
-							{
-								groupItems[k] = group;
-								k++;
-							}
-						}
-						break;
-					}
-				}
+				ref var c = ref connections[i];
+				var a = groupItems[c.StartIndex];
 			}
 
 			groupSize = groupSize.Slice(0, ITERATION_COUNT);
