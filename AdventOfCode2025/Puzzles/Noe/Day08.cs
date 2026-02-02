@@ -158,7 +158,6 @@ namespace AdventOfCode2025.Puzzles.Noe
 			for (var i = 0; i < connections.Length; i++)
 			{
 				ref var c = ref connections[i];
-				var a = groupItems[c.StartIndex];
 			}
 
 			groupSize = groupSize.Slice(0, ITERATION_COUNT);
