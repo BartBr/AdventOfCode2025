@@ -128,54 +128,62 @@ namespace AdventOfCode2025.Puzzles.Noe
 			Span<int> groupSize = stackalloc int[connections.Length];
 
 			var groupId = 0;
+			var prevEndIndex = connections[0].EndIndex;
+			// First pass to make group based on EndIndex (group end together)
 			for (var i = 0; i < connections.Length; i++)
 			{
-				var end = connections[i].EndIndex;
-				var j = 0;
-				while (j < connections.Length && (connections[j].EndIndex != end || j == i))
+				// Create a new group
+				if (prevEndIndex != connections[i].EndIndex)
 				{
-					j++;
+					groupId++;
 				}
 
-				// New group
-				if (j == connections.Length)
-				{
-					groupItems[i] = groupId++;
-					groupSize[i] = 1;
-					continue;
-				}
+				groupItems[i] = groupId;
+				groupSize[groupId] = groupSize[groupId] + 1;
+				prevEndIndex = connections[i].EndIndex;
+			}
 
-				while (j < connections.Length && connections[j].EndIndex == end)
+			// Connect Start to Ends
+			for (var i = 0; i < connections.Length; i++)
+			{
+				ref var current = ref connections[i];
+				var start = current.StartIndex;
+				// If we know the start is after us, well look after us
+				var j = start > current.EndIndex ? i + 1 : 0;
+				// Search matching group
+				for (; j < connections.Length; j++)
 				{
-
+					if (connections[j].EndIndex == start)
+					{
+						// If found group is already checked for connection
+						if (j < i)
+						{
+							var group = groupItems[j];
+							// Change the group id of all current group
+							var k = i;
+							var end = current.EndIndex;
+							while (k < connections.Length && end == connections[k].EndIndex)
+							{
+								groupItems[k] = group;
+								k++;
+							}
+						}
+						else
+						{
+							var group = groupItems[i];
+							// Change the group id of all other's group
+							var k = j;
+							var end = connections[k].EndIndex;
+							while (k < connections.Length && end == connections[k].EndIndex)
+							{
+								groupItems[k] = group;
+								k++;
+							}
+						}
+						break;
+					}
 				}
 			}
-			//for (var i = 0; i < connections.Length; i++)
-			//{
-			//	ref var connection = ref connections[i];
-			//	var currentGroupId = (int?) null;
-			//	for (var j = 0; j < i; j++)
-			//	{
-			//		ref var other = ref connections[j];
-			//		if (other.StartIndex == connection.EndIndex ||
-			//			other.EndIndex == connection.StartIndex ||
-			//			other.EndIndex == connection.EndIndex)
-			//		{
-			//			// If not yet part of a group, add it
-			//			if (currentGroupId == null)
-			//			{
-			//				currentGroupId = groupItems[j];
-			//			}
-			//			else
-			//			{
-
-			//			}
-
-			//			groupItems[i] = currentGroupId.Value;
-			//			groupSize[currentGroupId.Value] = groupSize[currentGroupId.Value] + 1;
-			//		}
-			//	}
-			//}
 
 			groupSize = groupSize.Slice(0, ITERATION_COUNT);
 			groupSize.Sort();
