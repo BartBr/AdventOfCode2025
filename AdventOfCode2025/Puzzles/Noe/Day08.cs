@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using AdventOfCode2025.Common;
 
 namespace AdventOfCode2025.Puzzles.Noe
@@ -30,7 +29,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 					return;
 				}
 
-				for (var i = 0; i < ITERATION_COUNT; i++)
+				for (var i = 0; i < Count; i++)
 				{
 					ref var c = ref _connections[i];
 					if (c.Length != 0 && c.Length <= connection.Length)
@@ -38,12 +37,11 @@ namespace AdventOfCode2025.Puzzles.Noe
 						continue;
 					}
 
-					var length = Count - i;
-					var source = _connections.Slice(i, length);
-					var dest = _connections.Slice(i + 1, length);
+					var source = _connections.Slice(i, Count - i);
+					var dest = _connections.Slice(i + 1);
 					source.CopyTo(dest);
 					_connections[i] = connection;
-					Count = Math.Min(_connections.Length - 1, Count + 1);
+					Count = Math.Min(ITERATION_COUNT, Count + 1);
 					return;
 				}
 			}
