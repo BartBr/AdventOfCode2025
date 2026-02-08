@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using AdventOfCode2025.Common;
 
 namespace AdventOfCode2025.Puzzles.Noe
@@ -18,8 +19,18 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 			public void Add(Connection connection)
 			{
-				var i = 0;
-				for (; i < ITERATION_COUNT; i++)
+				if (Count == 0)
+				{
+					_connections[0] = connection;
+					Count++;
+				}
+
+				if (connection.Length > _connections[Count - 1].Length)
+				{
+					return;
+				}
+
+				for (var i = 0; i < ITERATION_COUNT; i++)
 				{
 					ref var c = ref _connections[i];
 					if (c.Length != 0 && c.Length <= connection.Length)
@@ -27,7 +38,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 						continue;
 					}
 
-					var length = Math.Max(Count - i, 0);
+					var length = Count - i;
 					var source = _connections.Slice(i, length);
 					var dest = _connections.Slice(i + 1, length);
 					source.CopyTo(dest);
@@ -134,7 +145,6 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 				// Gather all ITERATION_COUNT closest connections
 				var set = new SortedConnectionSet(_connections);
-				var cnt = 0;
 				for (var i = 0; i < _nodes.Length - 1; i++)
 				{
 					ref var start = ref _nodes[i];
@@ -144,15 +154,8 @@ namespace AdventOfCode2025.Puzzles.Noe
 						var dist = start.DistanceSquared(end);
 						var c = new Connection(dist, i, j);
 						set.Add(c);
-						//_connections[cnt++] = new Connection(dist, i, j);
 					}
 				}
-
-				//_connections = _connections.Slice(0, cnt);
-				//_connections.Sort(CompareConnectionLength);
-
-				// ITERATION_COUNT * 2 to keep all node junction (a -> b and b -> a)
-				//_connections = _connections.Slice(0, ITERATION_COUNT * 2);
 
 				for (var i = 0; i < ITERATION_COUNT; i++)
 				{
@@ -245,6 +248,16 @@ namespace AdventOfCode2025.Puzzles.Noe
 		public override long SolvePart2(Input input)
 		{
 			return SolvePart1(input);
+		}
+
+		private static int LogN(int n)
+		{
+			var res = 0;
+			for (var i = 1; i < n; i++)
+			{
+				res += i;
+			}
+			return res;
 		}
 
 		private static int CompareConnectionLength(Connection a, Connection b)
