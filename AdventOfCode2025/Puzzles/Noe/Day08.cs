@@ -4,13 +4,50 @@ namespace AdventOfCode2025.Puzzles.Noe
 {
 	public class Day08 : HappyPuzzleBase<long>
 	{
-		private readonly struct Vector3
+		private const int ITERATION_COUNT = 1000;
+
+		private ref struct SortedConnectionSet
+		{
+			public int Count = 0;
+			private readonly Span<Connection> _connections;
+
+			public SortedConnectionSet(Span<Connection> connections)
+			{
+				_connections = connections;
+			}
+
+			public void Add(Connection connection)
+			{
+				var i = 0;
+				for (; i < ITERATION_COUNT; i++)
+				{
+					ref var c = ref _connections[i];
+					if (c.Length != 0 && c.Length <= connection.Length)
+					{
+						continue;
+					}
+
+					var length = Math.Max(Count - i, 0);
+					var source = _connections.Slice(i, length);
+					var dest = _connections.Slice(i + 1, length);
+					source.CopyTo(dest);
+					_connections[i] = connection;
+					Count = Math.Min(_connections.Length - 1, Count + 1);
+					return;
+				}
+			}
+		}
+
+		private struct Node
 		{
 			public readonly int X;
 			public readonly int Y;
 			public readonly int Z;
 
-			public Vector3(ReadOnlySpan<char> line)
+			public int ConnectionIndex = -1;
+			public int ConnectionCount;
+
+			public Node(ReadOnlySpan<char> line)
 			{
 				var number = 0;
 				var i = 0;
@@ -52,11 +89,11 @@ namespace AdventOfCode2025.Puzzles.Noe
 				Z = number;
 			}
 
-			public readonly long DistanceSquared(Vector3 other)
+			public readonly long DistanceSquared(Node other)
 			{
-				var dx = X - other.X;
-				var dy = Y - other.Y;
-				var dz = Z - other.Z;
+				var dx = (long) (X - other.X);
+				var dy = (long) (Y - other.Y);
+				var dz = (long) (Z - other.Z);
 				return dx * dx + dy * dy + dz * dz;
 			}
 		}
@@ -70,7 +107,8 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 			public readonly int CompareTo(Connection other)
 			{
-				return StartIndex.CompareTo(other.StartIndex);
+				var r = StartIndex.CompareTo(other.StartIndex);
+				return r == 0 ? EndIndex.CompareTo(other.EndIndex) : r;
 			}
 
 			public override string ToString()
@@ -79,126 +117,139 @@ namespace AdventOfCode2025.Puzzles.Noe
 			}
 		}
 
-		private ref struct SortedConnectionSet
+		private readonly ref struct Graph
 		{
-			public int Count = 0;
 			private readonly Span<Connection> _connections;
+			private readonly Span<Node> _nodes;
 
-			public SortedConnectionSet(Span<Connection> connections)
+			public Graph(string[] inputs, Span<Connection> connections, Span<Node> nodes)
 			{
+				_nodes = nodes;
 				_connections = connections;
-			}
+				// Create all nodes
+				for (var i = 0; i < inputs.Length; i++)
+				{
+					_nodes[i] = new Node(inputs[i]);
+				}
 
-			public void Add(Connection connection)
-			{
-				var i = 0;
-				for (; i < _connections.Length; i++)
+				// Gather all ITERATION_COUNT closest connections
+				var set = new SortedConnectionSet(_connections);
+				var cnt = 0;
+				for (var i = 0; i < _nodes.Length - 1; i++)
+				{
+					ref var start = ref _nodes[i];
+					for (var j = i + 1; j < _nodes.Length; j++)
+					{
+						ref var end = ref _nodes[j];
+						var dist = start.DistanceSquared(end);
+						var c = new Connection(dist, i, j);
+						set.Add(c);
+						//_connections[cnt++] = new Connection(dist, i, j);
+					}
+				}
+
+				//_connections = _connections.Slice(0, cnt);
+				//_connections.Sort(CompareConnectionLength);
+
+				// ITERATION_COUNT * 2 to keep all node junction (a -> b and b -> a)
+				//_connections = _connections.Slice(0, ITERATION_COUNT * 2);
+
+				for (var i = 0; i < ITERATION_COUNT; i++)
 				{
 					ref var c = ref _connections[i];
-					if (c.Length == 0 || c.Length > connection.Length)
+					_connections[ITERATION_COUNT + i] = new Connection(c.Length, c.EndIndex, c.StartIndex);
+				}
+
+				// Sort by StartIndex
+				_connections.Sort();
+
+				// Make a map of all connections by node
+				var prevIdx = -1;
+				for (var i = 0; i < _connections.Length; i++)
+				{
+					var idx = _connections[i].StartIndex;
+					ref var node = ref _nodes[idx];
+					node.ConnectionCount++;
+					if (prevIdx == idx)
 					{
-						var length = Math.Max(Count - i, 0);
-						var source = _connections.Slice(i, length);
-						var dest = _connections.Slice(i + 1, length);
-						source.CopyTo(dest);
-						_connections[i] = connection;
-						Count = Math.Min(_connections.Length - 1, Count + 1);
-						return;
+						continue;
 					}
+
+					node.ConnectionIndex = i;
+					prevIdx = idx;
+				}
+			}
+
+			public Span<int> GetGroupSize(Span<int> groupSizes)
+			{
+				scoped Span<bool> visited = stackalloc bool[_nodes.Length];
+
+				for (var i = 0; i < _nodes.Length; i++)
+				{
+					if (visited[i])
+					{
+						continue;
+					}
+					ref var groupSize = ref groupSizes[i];
+					SearchRecursive(i, visited, ref groupSize);
+				}
+				groupSizes.Sort();
+				return groupSizes;
+			}
+
+			private void SearchRecursive(
+				int index,
+				Span<bool> visited,
+				ref int count)
+			{
+				if (visited[index])
+				{
+					return;
+				}
+
+				visited[index] = true;
+				count++;
+
+				ref var node = ref _nodes[index];
+				if (node.ConnectionIndex == -1)
+				{
+					return;
+				}
+
+				for (var i = 0; i < node.ConnectionCount; i++)
+				{
+					var end = _connections[node.ConnectionIndex + i].EndIndex;
+					SearchRecursive(end, visited, ref count);
 				}
 			}
 		}
 
 		public override long SolvePart1(Input input)
 		{
-			const int ITERATION_COUNT = 10;
-			Span<Vector3> nodes = stackalloc Vector3[input.Lines.Length];
-			for (var i = 0; i < input.Lines.Length; i++)
+			Span<Connection> connections = stackalloc Connection[ITERATION_COUNT * 2];
+			Span<Node> nodes = stackalloc Node[input.Lines.Length];
+
+			var graph = new Graph(input.Lines, connections, nodes);
+
+			Span<int> groupSizes = stackalloc int[nodes.Length];
+			groupSizes = graph.GetGroupSize(groupSizes);
+
+			var result = 1L;
+			for (var i = 1; i <= 3; i++)
 			{
-				nodes[i] = new Vector3(input.Lines[i]);
+				result *= groupSizes[groupSizes.Length - i];
 			}
-
-			// Gather all closest connections
-			Span<Connection> connections = stackalloc Connection[ITERATION_COUNT + 1];
-			var set = new SortedConnectionSet(connections);
-			for (var i = 0; i < nodes.Length - 1; i++)
-			{
-				ref var start = ref nodes[i];
-				for (var j = i + 1; j < nodes.Length; j++)
-				{
-					ref var end = ref nodes[j];
-					var dist = start.DistanceSquared(end);
-					var c = new Connection(dist, i, j);
-					set.Add(c);
-				}
-			}
-
-			// Only keep ITERATION_COUNT shortest ones
-			connections = connections.Slice(0, ITERATION_COUNT);
-
-			Span<int> groupItems = stackalloc int[connections.Length];
-			Span<int> groupSize = stackalloc int[connections.Length];
-
-			var groupId = 0;
-			var prevEndIndex = connections[0].EndIndex;
-			// First pass to make group based on EndIndex (group end together)
-			for (var i = 0; i < connections.Length; i++)
-			{
-				// Create a new group
-				if (prevEndIndex != connections[i].StartIndex)
-				{
-					groupId++;
-				}
-
-				groupItems[i] = groupId;
-				groupSize[groupId] = groupSize[groupId] + 1;
-				prevEndIndex = connections[i].StartIndex;
-			}
-
-			for (var i = 0; i < connections.Length; i++)
-			{
-				ref var c = ref connections[i];
-			}
-
-			groupSize = groupSize.Slice(0, ITERATION_COUNT);
-			groupSize.Sort();
-			var result = 1;
-			for (var i = ITERATION_COUNT - 1; i >= ITERATION_COUNT - 4; i--)
-			{
-				result *= groupSize[i];
-			}
-
 			return result;
-		}
-
-
-		private static void SearchRecursive(
-			Connection connection,
-			int startIndex,
-			Span<Connection> connections,
-			Span<int> groupItems,
-			Span<int> groupSize)
-		{
-			for (var i = startIndex; i < connections.Length; i++)
-			{
-
-			}
-		}
-
-		private static int CompareConnectionEnd(Connection a, Connection b)
-		{
-			var r = a.EndIndex.CompareTo(b.EndIndex);
-			if (r == 0)
-			{
-				r = a.StartIndex.CompareTo(b.StartIndex);
-			}
-
-			return r;
 		}
 
 		public override long SolvePart2(Input input)
 		{
-			return 0;
+			return SolvePart1(input);
+		}
+
+		private static int CompareConnectionLength(Connection a, Connection b)
+		{
+			return a.Length.CompareTo(b.Length);
 		}
 
 		private static long ParseLong(ReadOnlySpan<char> input)
