@@ -8,20 +8,28 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 		private ref struct SortedConnectionSet
 		{
+			private readonly int _maxLength;
 			public int Count = 0;
 			private readonly Span<Connection> _connections;
 
-			public SortedConnectionSet(Span<Connection> connections)
+			public SortedConnectionSet(Span<Connection> connections, int maxLength)
 			{
 				_connections = connections;
+				_maxLength = maxLength;
 			}
 
-			public void Add(Connection connection)
+			public void Reset()
+			{
+				Count = 0;
+			}
+
+			public void Add(in Connection connection)
 			{
 				if (Count == 0)
 				{
 					_connections[0] = connection;
 					Count++;
+					return;
 				}
 
 				if (connection.Length > _connections[Count - 1].Length)
@@ -32,7 +40,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 				for (var i = 0; i < Count; i++)
 				{
 					ref var c = ref _connections[i];
-					if (c.Length != 0 && c.Length <= connection.Length)
+					if (c.Length <= connection.Length)
 					{
 						continue;
 					}
@@ -41,7 +49,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 					var dest = _connections.Slice(i + 1);
 					source.CopyTo(dest);
 					_connections[i] = connection;
-					Count = Math.Min(ITERATION_COUNT, Count + 1);
+					Count = Math.Min(_maxLength, Count + 1);
 					return;
 				}
 			}
@@ -98,7 +106,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 				Z = number;
 			}
 
-			public readonly long DistanceSquared(Node other)
+			public readonly long DistanceSquared(in Node other)
 			{
 				var dx = (long) (X - other.X);
 				var dy = (long) (Y - other.Y);
@@ -142,7 +150,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 				}
 
 				// Gather all ITERATION_COUNT closest connections
-				var set = new SortedConnectionSet(_connections);
+				var set = new SortedConnectionSet(_connections, ITERATION_COUNT);
 				for (var i = 0; i < _nodes.Length - 1; i++)
 				{
 					ref var start = ref _nodes[i];
@@ -245,37 +253,143 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 		public override long SolvePart2(Input input)
 		{
-			return SolvePart1(input);
-		}
+			var inputs = input.Lines;
+			Span<Connection> connections = stackalloc Connection[inputs.Length / 2 + 1];
+			Span<Node> nodes = stackalloc Node[input.Lines.Length];
 
-		private static int LogN(int n)
-		{
-			var res = 0;
-			for (var i = 1; i < n; i++)
+			// Create all nodes
+			for (var i = 0; i < inputs.Length; i++)
 			{
-				res += i;
+				nodes[i] = new Node(inputs[i]);
 			}
-			return res;
-		}
 
-		private static int CompareConnectionLength(Connection a, Connection b)
-		{
-			return a.Length.CompareTo(b.Length);
-		}
-
-		private static long ParseLong(ReadOnlySpan<char> input)
-		{
-			var number = 0L;
-			for (var i = 0; i < input.Length; i++)
+			var set = new SortedConnectionSet(connections, connections.Length - 1);
+			for (var i = 0; i < nodes.Length - 1; i++)
 			{
-				if (input[i] == ' ')
+				ref var start = ref nodes[i];
+				for (var j = i + 1; j < nodes.Length; j++)
 				{
-					continue;
+					ref var end = ref nodes[j];
+					var dist = start.DistanceSquared(end);
+					var c = new Connection(dist, i, j);
+					set.Add(c);
 				}
-				var lastDigit = input[i] - '0';
-				number = number * 10L + lastDigit;
 			}
-			return number;
+
+			Span<int> groups = stackalloc int[nodes.Length];
+			Span<Connection> buffer = stackalloc Connection[nodes.Length + 1];
+			var currentGroupId = 1;
+			var maxNodeId = -1;
+			var minNodeId = groups.Length;
+
+			var a = -1;
+			var b = -1;
+
+			while (true)
+			{
+				for (var i = 0; i < set.Count; i++)
+				{
+					ref var connection = ref connections[i];
+					ref var startGroup = ref groups[connection.StartIndex];
+					ref var endGroup = ref groups[connection.EndIndex];
+					// If both are already in the same group, just ignore
+					if (startGroup != 0 && startGroup == endGroup)
+					{
+						continue;
+					}
+					a = connection.StartIndex;
+					b = connection.EndIndex;
+					maxNodeId = connection.EndIndex > maxNodeId ? connection.EndIndex : maxNodeId;
+					minNodeId = connection.StartIndex < minNodeId ? connection.StartIndex : minNodeId;
+
+					var startIsInGroup = startGroup != 0;
+					var endIsInGroup = endGroup != 0;
+					if (startIsInGroup && endIsInGroup)
+					{
+						MergeGroup(groups.Slice(minNodeId, maxNodeId - minNodeId + 1), endGroup, startGroup);
+						continue;
+					}
+
+					if (startIsInGroup != endIsInGroup)
+					{
+						if (startIsInGroup)
+						{
+							endGroup = startGroup;
+						}
+						else
+						{
+							startGroup = endGroup;
+						}
+						continue;
+					}
+
+					startGroup = currentGroupId;
+					endGroup = currentGroupId;
+					currentGroupId++;
+				}
+
+				if (IsSameGroup(groups))
+				{
+					break;
+				}
+
+				FetchNextConnections(nodes, set, groups, connections[^1].Length);
+			}
+
+			return nodes[a].X * nodes[b].X;
+		}
+
+		private static void FetchNextConnections(in Span<Node> nodes, SortedConnectionSet set, in Span<int> groups, long minLength)
+		{
+			set.Reset();
+			for (var i = 0; i < nodes.Length - 1; i++)
+			{
+				ref var start = ref nodes[i];
+				var startGroup = groups[i];
+				for (var j = i + 1; j < nodes.Length; j++)
+				{
+					var endGroup = groups[j];
+					// If both are already in the same group, just ignore
+					if (startGroup != 0 && startGroup == endGroup)
+					{
+						continue;
+					}
+					ref var end = ref nodes[j];
+					var dist = start.DistanceSquared(in end);
+					if (dist < minLength)
+					{
+						continue;
+					}
+
+					var c = new Connection(dist, i, j);
+					set.Add(in c);
+				}
+			}
+		}
+
+		private static bool IsSameGroup(Span<int> groups)
+		{
+			var prev = groups[0];
+			for (var i = 1; i < groups.Length; i++)
+			{
+				if (prev != groups[i])
+				{
+					return false;
+				}
+				prev = groups[i];
+			}
+			return true;
+		}
+
+		private static void MergeGroup(Span<int> groups, int previousGroupId, int newGroupId)
+		{
+			for (var i = 0; i < groups.Length; i++)
+			{
+				if (groups[i] == previousGroupId)
+				{
+					groups[i] = newGroupId;
+				}
+			}
 		}
 	}
 }

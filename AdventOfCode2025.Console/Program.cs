@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using AdventOfCode2025.Common;
 using AdventOfCode2025.Console;
 using Microsoft.Extensions.Configuration;
@@ -13,8 +13,7 @@ Console.WriteLine($"Hello {yourName}");
 
 var activatedPuzzleRecords = HappyPuzzleHelpers
 	.DiscoverPuzzles(true, yourName)
-	.Select(yourPuzzle => new ActivatorRecord(yourPuzzle.Name, Activator.CreateInstance(yourPuzzle)!))
-	.ToList();
+	.Select(yourPuzzle => new ActivatorRecord(yourPuzzle.Name, Activator.CreateInstance(yourPuzzle)!));
 
 foreach (var puzzleRecord in activatedPuzzleRecords)
 {
