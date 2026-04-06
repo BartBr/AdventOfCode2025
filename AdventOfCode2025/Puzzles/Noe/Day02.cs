@@ -60,7 +60,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 			var middle = charWritten / 2;
 			var chunkSize = middle - 1;
 
-			for (var i = 0; i < chunkSize; i++)
+			for (var i = 0; i < middle; i++)
 			{
 				if (chars[i] != chars[middle + i])
 				{
@@ -76,9 +76,9 @@ namespace AdventOfCode2025.Puzzles.Noe
 			number.TryFormat(chars, out var charWritten);
 			chars = chars.Slice(0, charWritten);
 
-			for (var chunkSize = 1; chunkSize < chars.Length / 2; chunkSize++)
+			for (var chunkSize = 0; chunkSize < chars.Length / 2; chunkSize++)
 			{
-				if (AllChunksAreEqual(chars, chunkSize))
+				if (AllChunksAreEqual(chars, chunkSize + 1))
 				{
 					return true;
 				}
