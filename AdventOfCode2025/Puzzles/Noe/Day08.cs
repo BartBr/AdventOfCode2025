@@ -213,14 +213,7 @@ namespace AdventOfCode2025.Puzzles.Noe
 
 			groupSizes.Sort();
 
-			var total = 1L;
-			for (var i = 1; i <= 3; i++)
-			{
-				var size = groupSizes[groupSizes.Length - i];
-				total *= size;
-			}
-
-			return total;
+			return groupSizes[^1] * groupSizes[^2] * groupSizes[^3];
 		}
 
 		public override long SolvePart2(Input input)
